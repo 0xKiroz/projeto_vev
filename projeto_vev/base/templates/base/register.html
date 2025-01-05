@@ -1,5 +1,14 @@
-<!-- usuarios/templates/usuarios/register.html -->
 <h2>Registro de Usuário</h2>
+
+<!-- Bloco para exibir mensagens -->
+{% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
 <form method="post">
     {% csrf_token %}
     <label>Username: <input type="text" name="username" required></label><br>
