@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.contrib.auth.models import Permission
 
 class UserTests(TestCase):
     def setUp(self):
@@ -54,3 +55,19 @@ class UserTests(TestCase):
         response = self.client.get(self.logout_url)
         self.assertEqual(response.status_code, 302)  # Redirecionamento esperado após logout
         self.assertRedirects(response, self.login_url)  # Redireciona para a página de login
+
+    def test_user_permissions(self):
+        """Testa se usuários sem permissão não conseguem acessar áreas restritas."""
+        # Usuário sem permissão tenta acessar
+        response = self.client.get(reverse('restricted_area'))
+        self.assertEqual(response.status_code, 403)  # Esperado: acesso negado
+
+    def test_user_permissions_granted(self):
+        """Testa se usuários com permissão podem acessar áreas restritas."""
+        permission = Permission.objects.get(codename='view_user')  # Substitua pelo codename correto
+        self.user.user_permissions.add(permission)
+        self.user.save()  # Salva as alterações no usuário
+    
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get(reverse('restricted_area'))
+        self.assertEqual(response.status_code, 200)  # Esperado: acesso permitido

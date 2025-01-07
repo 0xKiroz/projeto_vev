@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import permission_required
 
 
 def register(request):
@@ -47,3 +48,12 @@ def logout_user(request):
     logout(request)
     messages.success(request, "Você saiu com sucesso.")
     return redirect('login')
+
+
+from django.contrib.auth.decorators import permission_required
+from django.shortcuts import render
+
+@permission_required('auth.view_user', raise_exception=True)  # Substitua 'auth.view_user' pelo codename correto
+def restricted_view(request):
+    return render(request, 'base/restricted.html')
+
