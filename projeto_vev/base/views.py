@@ -1,29 +1,24 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import permission_required
-
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required, permission_required
+from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied
+from .forms import UserRegistrationForm
 
 def register(request):
     if request.method == 'POST':
-        # Use `.get()` para evitar erros caso a chave não exista
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-        email = request.POST.get('email', '').strip()
-
-        # Verificar se todos os campos foram preenchidos
-        if not username or not password or not email:
-            messages.error(request, "Todos os campos são obrigatórios.")
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, "Usuário já existe.")
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()  # Salva o novo usuário
+            return redirect('login')  # Redireciona para a página de login
         else:
-            # Criação do usuário
-            User.objects.create_user(username=username, password=password, email=email)
-            messages.success(request, "Usuário criado com sucesso!")
-            return redirect('login')  # Redireciona para a tela de login
-
-    return render(request, 'base/register.html')
+            # Se o formulário for inválido, renderiza a página com os erros
+            return render(request, 'base/register.html', {'form': form})
+    else:
+        form = UserRegistrationForm()  # Formulário vazio para GET
+    return render(request, 'base/register.html', {'form': form})
 
 
 def login_user(request):
@@ -57,3 +52,13 @@ from django.shortcuts import render
 def restricted_view(request):
     return render(request, 'base/restricted.html')
 
+from django.core.exceptions import PermissionDenied
+
+@login_required
+@permission_required('auth.can_access_restricted_area', raise_exception=True)
+def restricted_view(request):
+    return HttpResponse("Área restrita")
+
+def custom_password_change_done(request):
+    messages.success(request, 'Sua senha foi alterada com sucesso!')
+    return redirect('login')  # ou qualquer outra URL que você queira redirecionar
