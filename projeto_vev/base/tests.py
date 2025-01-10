@@ -327,10 +327,83 @@ class PasswordChangeTests(TestCase):
         # Teste para 21 caracteres (inválido)
         response = self.client.post(self.change_password_url, {
             'old_password': 'oldpassword123',
-            'new_password1': 'toolongpassword1234567',
-            'new_password2': 'toolongpassword1234567',
+            'new_password1': 'longpassword12345678901',
+            'new_password2': 'longpassword12345678901',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "A nova senha deve ter no máximo 20 caracteres")
+        self.assertContains(response, "A nova senha deve ter pelo menos 8 caracteres e no máximo 20 caracteres.")
         self.user.refresh_from_db()
-        self.assertTrue(self.user.check_password('oldpassword123'))  # A senha deve permanecer a mesma
+        self.assertTrue(self.user.check_password('oldpassword123'))  # A senha deve permanecer inalterada.
+
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.urls import reverse
+
+
+class UserActivationTests(TestCase):
+    def setUp(self):
+        # Criando usuários para os testes
+        self.active_user = User.objects.create_user(
+            username="active_user",
+            password="validpassword",
+            is_active=True
+        )
+        self.inactive_user = User.objects.create_user(
+            username="inactive_user",
+            password="validpassword",
+            is_active=False
+        )
+
+    def test_login_with_active_user_and_valid_credentials(self):
+        """Usuário ativo com credenciais válidas deve conseguir fazer login."""
+        response = self.client.post(
+            reverse("login"), 
+            {"username": "active_user", "password": "validpassword"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bem-vindo")  # Substitua pelo conteúdo esperado após login bem-sucedido.
+
+    def test_login_with_inactive_user_and_valid_credentials(self):
+        """Usuário inativo com credenciais válidas não deve conseguir fazer login."""
+        response = self.client.post(
+            reverse("login"), 
+            {"username": "inactive_user", "password": "validpassword"}
+        )
+        self.assertEqual(response.status_code, 200)  # O Django geralmente retorna o mesmo código em caso de erro.
+        self.assertContains(response, "Sua conta está desativada.")  # Mensagem esperada.
+
+    def test_login_with_invalid_credentials(self):
+        """Nenhum usuário deve conseguir fazer login com credenciais inválidas."""
+        response = self.client.post(
+            reverse("login"), 
+            {"username": "active_user", "password": "wrongpassword"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Credenciais inválidas.")  # Mensagem esperada.
+
+    def test_transition_from_active_to_inactive(self):
+        """Teste a transição de is_active de True para False."""
+        self.active_user.is_active = False
+        self.active_user.save()
+        response = self.client.post(
+            reverse("login"), 
+            {"username": "active_user", "password": "validpassword"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sua conta está desativada.")  # Mensagem esperada.
+
+    def test_system_during_manual_deactivation(self):
+        """Teste o sistema no momento exato da inativação."""
+        self.active_user.is_active = True
+        self.active_user.save()
+        # Simulando uma tentativa de login enquanto o usuário é desativado
+        self.active_user.is_active = False
+        self.active_user.save()
+
+        response = self.client.post(
+            reverse("login"), 
+            {"username": "active_user", "password": "validpassword"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sua conta está desativada.")  # Mensagem esperada.
+
