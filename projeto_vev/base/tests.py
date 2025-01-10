@@ -3,6 +3,7 @@ from django.contrib.auth.models import User, Permission
 from django.urls import reverse
 from django.contrib.contenttypes.models import ContentType
 
+
 class UserTests(TestCase):
     def setUp(self):
         # Criação de um usuário para testes de login e logout
@@ -334,11 +335,6 @@ class PasswordChangeTests(TestCase):
         self.assertContains(response, "A nova senha deve ter pelo menos 8 caracteres e no máximo 20 caracteres.")
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('oldpassword123'))  # A senha deve permanecer inalterada.
-
-from django.contrib.auth.models import User
-from django.test import TestCase
-from django.urls import reverse
-
 
 class UserActivationTests(TestCase):
     def setUp(self):
